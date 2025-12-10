@@ -1,0 +1,35 @@
+/* frontend/src/App.css */
+.hero-container {
+  background-color: var(--color-primary); /* Fondo Negro */
+  color: var(--color-surface);            /* Texto Blanco */
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-big {
+  font-size: 4rem;      /* Tamaño grande */
+  font-weight: 700;     /* Negrita (Bold) */
+  letter-spacing: -2px; /* Letras juntitas (Estilo moderno) */
+}
+
+.dot {
+  color: #10B981; /* El punto verde si quieres, o blanco */
+}
+
+.subtitle {
+  margin-top: 1rem;
+  color: #A1A1AA;
+  font-family: monospace; /* Fuente de código */
+}
+
+/* frontend/src/App.css (Al final del todo) */
+
+/* Ocultar icono del calendario */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
+}
