@@ -1,4 +1,3 @@
-// frontend/src/InvoicePDF.jsx
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 
@@ -63,7 +62,7 @@ const InvoicePDF = ({ factura, perfil }) => {
         {/* HEADER */}
         <View style={styles.header}>
 
-          {/* LÓGICA: ¿Hay logo? Pon imagen. ¿No? Pon texto. */}
+          {/* Si no hay logo, muestra el nombre */}
           {emisor.logo ? (
             <Image
               src={emisor.logo}
@@ -71,7 +70,7 @@ const InvoicePDF = ({ factura, perfil }) => {
             />
           ) : (
             <Text style={styles.brand}>{emisor.nombre || 'INVOICEMAKER'}</Text>
-          )}
+          )}  
 
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={styles.invoiceTitle}>FACTURA</Text>
@@ -81,7 +80,7 @@ const InvoicePDF = ({ factura, perfil }) => {
 
         {/* DIRECCIONES */}
         <View style={styles.addressesContainer}>
-          {/* COLUMNA IZQUIERDA: EMISOR (TÚ) */}
+          {/* COLUMNA IZQUIERDA: EMISOR*/}
           <View style={styles.addressBlock}>
             <Text style={styles.label}>De (Emisor):</Text>
             <Text style={styles.bold}>{emisor.nombre}</Text>

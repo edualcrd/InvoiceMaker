@@ -1,18 +1,17 @@
-// frontend/src/App.jsx
-import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'sonner';
-import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import ClientsPage from './pages/ClientsPage';
-import SettingsPage from './pages/SettingsPage';
-import ProductsPage from './pages/ProductsPage'; 
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage'; // <--- IMPORTADO
+import { useState, useEffect } from 'react'; // Importaciones necesarias
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // Para rutas
+import { Toaster } from 'sonner'; // Para notificaciones
+import Sidebar from './components/Sidebar'; // Sidebar de navegación
+import Dashboard from './pages/Dashboard'; // Página principal
+import ClientsPage from './pages/ClientsPage'; // Página de clientes
+import SettingsPage from './pages/SettingsPage'; // Página de ajustes
+import ProductsPage from './pages/ProductsPage'; // Página de productos/servicios
+import LoginPage from './pages/LoginPage'; // Página de login
+import RegisterPage from './pages/RegisterPage'; // Página de registro
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false); // <--- NUEVO ESTADO
+  const [isRegistering, setIsRegistering] = useState(false); 
 
   useEffect(() => {
     // Ahora comprobamos si existe el TOKEN real, no solo un booleano
@@ -30,7 +29,7 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  // --- ZONA DE NO LOGUEADOS ---
+  // Zona de los no logueados
   if (!isAuthenticated) {
     return (
       <>
@@ -48,7 +47,7 @@ function App() {
     );
   }
 
-  // --- ZONA DE LOGUEADOS (APP) ---
+  // Zona de los logueados
   return (
     <BrowserRouter>
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#09090B' }}>

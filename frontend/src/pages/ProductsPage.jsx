@@ -1,4 +1,3 @@
-// frontend/src/pages/ProductsPage.jsx
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { authFetch } from '../api';
@@ -35,21 +34,21 @@ function ProductsPage() {
   };
 
   return (
-    <div style={{ 
-      height: '100%', 
-      width: '100%', 
-      overflowY: 'auto', 
-      padding: '40px', // MÁS MARGEN GENERAL
+    <div style={{
+      height: '100%',
+      width: '100%',
+      overflowY: 'auto',
+      padding: '40px',
       boxSizing: 'border-box'
     }}>
-      
+
       <h1 style={{ fontSize: '2rem', marginBottom: '10px', color: 'white' }}>
         Catálogo de Servicios
       </h1>
       <p style={{ color: '#A1A1AA', marginBottom: '40px' }}>Guarda tus precios habituales.</p>
 
       <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        
+
         {/* FORMULARIO */}
         <div style={{ flex: 1, minWidth: '300px', background: '#18181B', padding: '25px', borderRadius: '12px', border: '1px solid #27272A' }}>
           <h3 style={{ marginTop: 0, color: 'white', marginBottom: '20px' }}>Nuevo Servicio</h3>

@@ -23,12 +23,11 @@
 .subtitle {
   margin-top: 1rem;
   color: #A1A1AA;
-  font-family: monospace; /* Fuente de código */
+  font-family: monospace; 
 }
 
-/* frontend/src/App.css (Al final del todo) */
 
-/* Ocultar icono del calendario */
+/* Con este input, ocultamos el icono del calendario */
 input[type="date"]::-webkit-calendar-picker-indicator {
     display: none;
     -webkit-appearance: none;

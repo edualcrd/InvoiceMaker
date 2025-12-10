@@ -1,4 +1,3 @@
-// frontend/src/pages/LoginPage.jsx
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -20,7 +19,7 @@ function LoginPage({ onLogin, onSwitchToRegister }) {
       const data = await res.json();
 
       if (res.ok) {
-        // 2. ¡Éxito! Guardamos el TOKEN (el DNI digital)
+        // 2. Guardamos el TOKEN
         localStorage.setItem('invoice_token', data.token);
         
         // Guardamos también los datos de empresa si los hay

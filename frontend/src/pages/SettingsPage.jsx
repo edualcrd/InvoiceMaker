@@ -1,4 +1,3 @@
-// frontend/src/pages/SettingsPage.jsx
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 function SettingsPage() {
@@ -8,10 +7,10 @@ function SettingsPage() {
     nif: '',
     direccion: '',
     email: '',
-    iban: '' // Para que sepan dónde pagarte
+    iban: ''
   });
 
-  // 1. Cargar datos guardados al entrar
+  // 1. Cargamos los datos guardados al entrar
   useEffect(() => {
     const saved = localStorage.getItem('invoiceMaker_profile');
     if (saved) {
@@ -19,7 +18,7 @@ function SettingsPage() {
     }
   }, []);
 
-  // 2. Guardar datos
+  // 2. Guardamos datos
   const handleSave = (e) => {
     e.preventDefault();
     localStorage.setItem('invoiceMaker_profile', JSON.stringify(profile));
@@ -27,13 +26,13 @@ function SettingsPage() {
   };
 
   const handleChange = (e) => setProfile({ ...profile, [e.target.name]: e.target.value });
-  // Convertir imagen a Base64 (Texto)
+  // Convertimos imagen a Base64 (Texto)
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 500000) { // Límite 500kb
-      return alert('El logo es demasiado grande. Usa una imagen más pequeña (max 500kb).');
+    if (file.size > 1000000) { // Límite 1MB
+      return alert('El logo es demasiado grande. Usa una imagen más pequeña (max 1MB).');
     }
 
     const reader = new FileReader();

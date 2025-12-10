@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { authFetch } from '../api'; // Importamos tu fetch autenticado
+import { authFetch } from '../api';
 
 function ClientsPage() {
   const [clients, setClients] = useState([]);
@@ -13,7 +13,7 @@ function ClientsPage() {
 
   const cargarClientes = async () => {
     try {
-      // AQUÍ YA USABAS authFetch BIEN
+      
       const res = await authFetch('http://localhost:3000/api/clients');
       if (res.ok) {
         const data = await res.json();
@@ -25,7 +25,7 @@ function ClientsPage() {
   };
 
   const handleDelete = async (id) => {
-    // CAMBIO: Usamos authFetch en lugar de fetch
+    // Usamos authFetch en lugar de fetch
     if (!confirm('¿Seguro que quieres borrar este cliente?')) return;
 
     const res = await authFetch(`http://localhost:3000/api/clients/${id}`, { method: 'DELETE' });
@@ -41,13 +41,10 @@ function ClientsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // CAMBIO: Usamos authFetch en lugar de fetch para enviar el token
     let res;
     const options = {
         method: editingId ? 'PUT' : 'POST',
         body: JSON.stringify(form)
-        // No hace falta poner headers content-type, authFetch ya lo gestiona si quieres, 
-        // pero para asegurar JSON se puede dejar o authFetch lo añade (según tu api.js lo añade)
     };
 
     if (editingId) {
@@ -73,12 +70,9 @@ function ClientsPage() {
     setEditingId(cliente._id);
   };
 
-  // ... (El resto de tu JSX de renderizado se mantiene igual) ...
   return (
     <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* ... Tu código JSX anterior ... */}
-      {/* Solo asegúrate de que el formulario llama a handleSubmit corregido */}
-      
+    
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '2rem' }}>Cartera de Clientes</h1>

@@ -1,5 +1,3 @@
-// frontend/src/api.js
-
 // Esta función sustituye al 'fetch' normal
 export const authFetch = async (url, options = {}) => {
   const token = localStorage.getItem('invoice_token');

@@ -1,4 +1,3 @@
-// backend/index.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -6,10 +5,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
-const auth = require('./middleware/auth'); // <--- IMPORTANTE
-// CLAVE SECRETA PARA LOS TOKENS (En un proyecto real esto va en .env)
+const auth = require('./middleware/auth');
+// Clave secreta para los tokens (en un proyecto real esto iría en .env)
 const JWT_SECRET = 'tokenSecreto-invoicemaker';
-
 // Importamos el modelo que acabamos de crear en el Paso 1
 const Client = require('./models/Client');
 const Invoice = require('./models/Invoice');
@@ -20,30 +18,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- CONEXIÓN A BASE DE DATOS ---
-
+// Conexión a MongoDB
 const MONGO_URI = 'mongodb+srv://edualcrd:Laude_178@invoicemaker-db.bocdkvy.mongodb.net/?appName=InvoiceMaker-DB';
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Conectada'))
     .catch((err) => console.error('❌ Error de Mongo:', err));
 
-// --- RUTAS DE AUTENTICACIÓN (NUEVAS) ---
 
-// 1. REGISTRO (Sign Up)
+// Rutas de autenticación
+// 1. Registro
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password, nombreEmpresa } = req.body;
 
-        // Comprobar si ya existe
+        // Comprobamos si ya existe
         const existe = await User.findOne({ email });
         if (existe) return res.status(400).json({ error: 'Ese email ya está registrado' });
 
-        // Encriptar contraseña (La convertimos en hash)
+        // Encriptamos la contraseña (la convertimos en hash)
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Crear usuario
+        // Creamos usuario
         const nuevoUsuario = new User({
             email,
             password: hashedPassword,
@@ -57,20 +54,20 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// 2. LOGIN (Sign In)
+// 2. Login 
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Buscar usuario
+        // Buscamos usuario
         const usuario = await User.findOne({ email });
         if (!usuario) return res.status(400).json({ error: 'Usuario no encontrado' });
 
-        // Comprobar contraseña (compara la que escribes con la encriptada)
+        // Comprobamos la contraseña
         const valida = await bcrypt.compare(password, usuario.password);
         if (!valida) return res.status(400).json({ error: 'Contraseña incorrecta' });
 
-        // Generar el TOKEN (El "DNI" que le damos para que navegue)
+        // Generamos el TOKEN
         const token = jwt.sign({ userId: usuario._id }, JWT_SECRET, { expiresIn: '1d' });
 
         res.json({ token, nombreEmpresa: usuario.nombreEmpresa });
@@ -78,12 +75,11 @@ app.post('/api/auth/login', async (req, res) => {
         res.status(500).json({ error: 'Error al iniciar sesión' });
     }
 });
-// --- RUTAS DE CLIENTES ---
 
-// 1. Ruta para GUARDAR un nuevo cliente (POST)
-
+// Rutas de clientes
+// 1. Ruta para guardar un nuevo cliente
 app.get('/api/clients', auth, async (req, res) => {
-    // Solo busca los clientes DE ESTE USUARIO
+    // Solo busca los clientes de este usuario específico
     const clientes = await Client.find({ user: req.user });
     res.json(clientes);
 });
@@ -96,26 +92,26 @@ app.post('/api/clients', auth, async (req, res) => {
 });
 
 app.delete('/api/clients/:id', auth, async (req, res) => {
-    // Solo borra si el ID coincide y ADEMÁS pertenece al usuario
+    // Solo borramos si el ID coincide y además pertenece al usuario
     await Client.findOneAndDelete({ _id: req.params.id, user: req.user });
     res.json({ mensaje: 'Cliente eliminado' });
 });
 
 app.put('/api/clients/:id', auth, async (req, res) => {
     const clienteActualizado = await Client.findOneAndUpdate(
-        { _id: req.params.id, user: req.user }, 
-        req.body, 
+        { _id: req.params.id, user: req.user },
+        req.body,
         { new: true }
     );
     res.json(clienteActualizado);
 });
-// --- UTILIDADES ---
 
-// CALCULAR SIGUIENTE NÚMERO DE FACTURA
+// Utilidades
+// Calculamos el siguient e número de factura (en formato: AAAA-NNN)
 app.get('/api/invoices/next-number', async (req, res) => {
     try {
         // 1. Buscamos la última factura creada (ordenada por fecha creación descendente)
-        // Nota: Usamos el campo _id porque contiene la fecha de creación implícita (natural sort)
+        // Nota: Usamos el campo _id porque contiene la fecha de creación implícita
         const ultimaFactura = await Invoice.findOne().sort({ _id: -1 });
 
         if (!ultimaFactura) {
@@ -146,7 +142,7 @@ app.get('/api/invoices/next-number', async (req, res) => {
         res.json({ next: 'ERROR' });
     }
 });
-// --- RUTAS DE FACTURAS ---
+// Rutas de facturas
 app.get('/api/invoices', auth, async (req, res) => {
     const facturas = await Invoice.find({ user: req.user });
     res.json(facturas);
@@ -165,7 +161,7 @@ app.delete('/api/invoices/:id', auth, async (req, res) => {
 
 app.patch('/api/invoices/:id', auth, async (req, res) => {
     const factura = await Invoice.findOne({ _id: req.params.id, user: req.user });
-    if(factura) {
+    if (factura) {
         factura.pagada = !factura.pagada;
         await factura.save();
         res.json(factura);
@@ -181,10 +177,10 @@ app.put('/api/invoices/:id', auth, async (req, res) => {
     res.json(actualizada);
 });
 
-// --- UTILIDAD: SIGUIENTE NÚMERO (POR USUARIO) ---
+// Siguiente número de factura (versión que filtra por usuario)
 app.get('/api/invoices/next-number', auth, async (req, res) => {
     try {
-        // Buscamos la última factura PERO SOLO DE ESTE USUARIO
+        // Buscamos la última factura pero solo de este usuario
         const ultimaFactura = await Invoice.findOne({ user: req.user }).sort({ _id: -1 });
 
         if (!ultimaFactura) {
@@ -203,7 +199,7 @@ app.get('/api/invoices/next-number', auth, async (req, res) => {
         res.json({ next: 'ERROR' });
     }
 });
-// --- RUTAS DE PRODUCTOS ---
+// Rutas de productos
 app.get('/api/products', auth, async (req, res) => {
     const productos = await Product.find({ user: req.user });
     res.json(productos);

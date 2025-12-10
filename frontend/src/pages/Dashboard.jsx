@@ -1,22 +1,19 @@
-// frontend/src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
-import { authFetch } from '../api'; // <--- IMPORTANTE: El conector seguro
+import { authFetch } from '../api';
 import InvoicePDF from '../InvoicePDF';
 import '../App.css';
 
 function Dashboard() {
-  // --- ESTADOS ---
+  // Estados
   const [clients, setClients] = useState([]);
   const [facturas, setFacturas] = useState([]);
   const [productosCatalogo, setProductosCatalogo] = useState([]); // Catálogo
   const [perfil, setPerfil] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
-
-  // Formulario
   const [editingId, setEditingId] = useState(null);
   const [selectedClient, setSelectedClient] = useState('');
   const [numero, setNumero] = useState('');
@@ -24,32 +21,32 @@ function Dashboard() {
   const [vencimiento, setVencimiento] = useState('');
   const [items, setItems] = useState([{ concepto: '', cantidad: 1, precio: 0 }]);
 
-  // --- CARGA INICIAL ---
+  // Carga inicial de datos
   useEffect(() => {
-    // 1. Cargar Clientes
+    // 1. Cargargamos Clientes
     authFetch('http://localhost:3000/api/clients')
       .then(res => res.json())
       .then(data => setClients(data));
 
-    // 2. Cargar Facturas
+    // 2. Cargargamos Facturas
     authFetch('http://localhost:3000/api/invoices')
       .then(res => res.json())
       .then(data => setFacturas(data));
 
-    // 3. Cargar Catálogo (Para el desplegable)
+    // 3. Cargargamos Catálogo
     authFetch('http://localhost:3000/api/products')
       .then(res => res.json())
       .then(data => setProductosCatalogo(data));
 
-    // 4. Calcular siguiente número
+    // 4. Calculamos el siguiente número
     fetchNextNumber();
 
-    // 5. Cargar perfil local
+    // 5. Cargargamos el perfil local
     const savedProfile = localStorage.getItem('invoiceMaker_profile');
     if (savedProfile) setPerfil(JSON.parse(savedProfile));
   }, []);
 
-  // --- FUNCIONES AUXILIARES ---
+  // Funciones auxiliares
   const fetchNextNumber = async () => {
     try {
       const res = await authFetch('http://localhost:3000/api/invoices/next-number');
@@ -81,24 +78,24 @@ function Dashboard() {
   }));
 
   const facturasFiltradas = facturas.filter(f => {
-    const coincideTexto = 
+    const coincideTexto =
       f.cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       f.numero.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideEstado = 
+    const coincideEstado =
       filtroEstado === 'todos' ? true :
-      filtroEstado === 'pagadas' ? f.pagada === true :
-      f.pagada === false;
+        filtroEstado === 'pagadas' ? f.pagada === true :
+          f.pagada === false;
     return coincideTexto && coincideEstado;
   });
 
-  // --- HANDLERS ---
+  // Handlers
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
     setItems(newItems);
   };
   const addItem = () => setItems([...items, { concepto: '', cantidad: 1, precio: 0 }]);
-  
+
   const addProductFromCatalog = (e) => {
     const productId = e.target.value;
     if (!productId) return;
@@ -111,9 +108,9 @@ function Dashboard() {
     setNumero(factura.numero);
     setFecha(factura.fecha.split('T')[0]);
     setVencimiento(factura.vencimiento ? factura.vencimiento.split('T')[0] : '');
-    // Buscar ID del cliente si existe en la lista actual
-    const clienteExistente = clients.find(c => c.nif === factura.cliente.nif); 
-    setSelectedClient(clienteExistente ? clienteExistente._id : ''); 
+    // Buscamos el ID del cliente si existe en la lista actual
+    const clienteExistente = clients.find(c => c.nif === factura.cliente.nif);
+    setSelectedClient(clienteExistente ? clienteExistente._id : '');
     setItems(factura.items.map(i => ({ concepto: i.concepto, cantidad: i.cantidad, precio: i.precio })));
     toast.info('Editando factura ' + factura.numero);
   };
@@ -130,10 +127,10 @@ function Dashboard() {
     e.preventDefault();
     if (!selectedClient) return toast.error('Por favor, selecciona un cliente');
     const clienteData = clients.find(c => c._id === selectedClient);
-    
-    // Si editamos y el cliente ya no existe en la BD, intentamos mantener el antiguo si no se seleccionó otro
-    const datosCliente = clienteData ? { 
-        nombre: clienteData.nombre, nif: clienteData.nif, email: clienteData.email, direccion: clienteData.direccion 
+
+    // Si editamos y el cliente ya no existe en la DB, intentamos mantener el antiguo si no se seleccionó otro
+    const datosCliente = clienteData ? {
+      nombre: clienteData.nombre, nif: clienteData.nif, email: clienteData.email, direccion: clienteData.direccion
     } : null;
 
     const facturaFinal = {
@@ -184,9 +181,9 @@ function Dashboard() {
     if (datos.length === 0) return toast.error('No hay datos para exportar');
     const cabeceras = ['Numero', 'Fecha', 'Cliente', 'NIF', 'Base', 'IVA', 'Total', 'Estado'];
     const filas = datos.map(f => [
-        `"${f.numero}"`, `"${f.fecha.split('T')[0]}"`, `"${f.cliente.nombre}"`, `"${f.cliente.nif}"`,
-        f.baseImponible.toFixed(2), f.iva.toFixed(2), f.total.toFixed(2), f.pagada ? 'PAGADA' : 'PENDIENTE'
-      ].join(','));
+      `"${f.numero}"`, `"${f.fecha.split('T')[0]}"`, `"${f.cliente.nombre}"`, `"${f.cliente.nif}"`,
+      f.baseImponible.toFixed(2), f.iva.toFixed(2), f.total.toFixed(2), f.pagada ? 'PAGADA' : 'PENDIENTE'
+    ].join(','));
     const contenidoCSV = [cabeceras.join(','), ...filas].join('\n');
     const blob = new Blob([contenidoCSV], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -225,13 +222,13 @@ function Dashboard() {
         <ResponsiveContainer width="100%" height="85%">
           <BarChart data={datosGrafica} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
-              <linearGradient id="colorCobrado" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/><stop offset="95%" stopColor="#10B981" stopOpacity={0}/></linearGradient>
-              <linearGradient id="colorPendiente" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#71717A" stopOpacity={0.8}/><stop offset="95%" stopColor="#71717A" stopOpacity={0}/></linearGradient>
+              <linearGradient id="colorCobrado" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.8} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
+              <linearGradient id="colorPendiente" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#71717A" stopOpacity={0.8} /><stop offset="95%" stopColor="#71717A" stopOpacity={0} /></linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272A" />
-            <XAxis dataKey="nombre" stroke="#71717A" tick={{ fill: '#A1A1AA', fontSize: 12 }} tickLine={false} axisLine={false} dy={10}/>
-            <YAxis stroke="#71717A" tick={{ fill: '#A1A1AA', fontSize: 12 }} tickLine={false} axisLine={false} unit="€"/>
-            <Tooltip cursor={{ fill: '#27272A', opacity: 0.4 }} contentStyle={{ backgroundColor: 'rgba(9, 9, 11, 0.9)', backdropFilter: 'blur(4px)', border: '1px solid #333', borderRadius: '8px', color: 'white' }} itemStyle={{ color: '#E4E4E7' }}/>
+            <XAxis dataKey="nombre" stroke="#71717A" tick={{ fill: '#A1A1AA', fontSize: 12 }} tickLine={false} axisLine={false} dy={10} />
+            <YAxis stroke="#71717A" tick={{ fill: '#A1A1AA', fontSize: 12 }} tickLine={false} axisLine={false} unit="€" />
+            <Tooltip cursor={{ fill: '#27272A', opacity: 0.4 }} contentStyle={{ backgroundColor: 'rgba(9, 9, 11, 0.9)', backdropFilter: 'blur(4px)', border: '1px solid #333', borderRadius: '8px', color: 'white' }} itemStyle={{ color: '#E4E4E7' }} />
             <Bar dataKey="total" radius={[8, 8, 0, 0]} animationDuration={1500}>
               {datosGrafica.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.estado === 'Cobrado' ? 'url(#colorCobrado)' : 'url(#colorPendiente)'} />)}
             </Bar>
@@ -246,13 +243,13 @@ function Dashboard() {
           <h3 style={{ marginTop: 0 }}>{editingId ? 'Editar Factura' : 'Nueva Factura'}</h3>
           <form onSubmit={guardarFactura}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-              <div><label style={{ display:'block', fontSize:'0.7rem', color:'#71717A', marginBottom:'4px' }}>NÚMERO</label><input type="text" value={numero} onChange={e => setNumero(e.target.value)} style={{ height: '40px', width:'100%', padding: '8px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius:'4px' }} /></div>
-              <div><label style={{ display:'block', fontSize:'0.7rem', color:'#71717A', marginBottom:'4px' }}>FECHA</label><input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={{ height: '40px', width:'100%', padding: '8px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius:'4px' }} /></div>
-              <div><label style={{ display:'block', fontSize:'0.7rem', color:'#71717A', marginBottom:'4px' }}>VENCIMIENTO</label><input type="date" value={vencimiento} onChange={e => setVencimiento(e.target.value)} style={{ height: '40px', width:'100%', padding: '8px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius:'4px' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '0.7rem', color: '#71717A', marginBottom: '4px' }}>NÚMERO</label><input type="text" value={numero} onChange={e => setNumero(e.target.value)} style={{ height: '40px', width: '100%', padding: '8px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius: '4px' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '0.7rem', color: '#71717A', marginBottom: '4px' }}>FECHA</label><input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={{ height: '40px', width: '100%', padding: '8px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius: '4px' }} /></div>
+              <div><label style={{ display: 'block', fontSize: '0.7rem', color: '#71717A', marginBottom: '4px' }}>VENCIMIENTO</label><input type="date" value={vencimiento} onChange={e => setVencimiento(e.target.value)} style={{ height: '40px', width: '100%', padding: '8px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius: '4px' }} /></div>
             </div>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display:'block', fontSize:'0.7rem', color:'#71717A', marginBottom:'4px' }}>CLIENTE</label>
-              <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)} style={{ width:'100%', padding: '10px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius:'4px' }} required>
+              <label style={{ display: 'block', fontSize: '0.7rem', color: '#71717A', marginBottom: '4px' }}>CLIENTE</label>
+              <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)} style={{ width: '100%', padding: '10px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius: '4px' }} required>
                 <option value="">-- Seleccionar Cliente --</option>
                 {clients.map(c => <option key={c._id} value={c._id}>{c.nombre}</option>)}
               </select>
@@ -268,8 +265,8 @@ function Dashboard() {
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="button" onClick={addItem} style={{ fontSize: '0.8rem', padding: '8px 12px', cursor: 'pointer', background: 'transparent', color: '#A1A1AA', border: '1px solid #333', borderRadius: '4px' }}>+ Línea Vacía</button>
                 <select onChange={addProductFromCatalog} style={{ fontSize: '0.8rem', padding: '8px', cursor: 'pointer', background: '#27272A', color: 'white', border: 'none', borderRadius: '4px', outline: 'none' }} value="">
-                    <option value="" disabled>Añadir Servicio Rápido...</option>
-                    {productosCatalogo.map(p => <option key={p._id} value={p._id}>{p.nombre} ({p.precio}€)</option>)}
+                  <option value="" disabled>Añadir Servicio Rápido...</option>
+                  {productosCatalogo.map(p => <option key={p._id} value={p._id}>{p.nombre} ({p.precio}€)</option>)}
                 </select>
               </div>
             </div>
@@ -296,7 +293,7 @@ function Dashboard() {
           </div>
           <button onClick={exportarCSV} style={{ width: '100%', marginBottom: '15px', padding: '10px', background: '#27272A', color: '#A1A1AA', border: '1px dashed #52525B', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>Descargar Informe Excel (.csv)</button>
           <input type="text" placeholder="Buscar..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ width: '92.5%', padding: '10px', marginBottom: '20px', background: '#18181B', border: '1px solid #333', color: 'white', borderRadius: '6px' }} />
-          {facturasFiltradas.length === 0 && <p style={{color: '#666', textAlign: 'center'}}>No encontrado.</p>}
+          {facturasFiltradas.length === 0 && <p style={{ color: '#666', textAlign: 'center' }}>No encontrado.</p>}
           {facturasFiltradas.map(f => (
             <div key={f._id} style={{ border: '1px solid #27272A', background: '#18181B', padding: '15px', marginBottom: '10px', borderRadius: '8px', opacity: f.pagada ? 0.6 : 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>

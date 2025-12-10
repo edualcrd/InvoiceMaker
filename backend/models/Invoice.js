@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const InvoiceSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // <--- DUEÑO
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     numero: { type: String, required: true }, // Quitamos unique global, porque dos usuarios pueden tener la factura "001"
     fecha: { type: Date, default: Date.now },
     vencimiento: Date,

@@ -1,4 +1,3 @@
-// backend/models/User.js
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
@@ -11,7 +10,7 @@ const UserSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
-    nombreEmpresa: String, // Guardaremos aquí los datos de ajustes
+    nombreEmpresa: String, // Guardamos aquí los datos de ajustes
     fechaRegistro: { 
         type: Date, 
         default: Date.now 

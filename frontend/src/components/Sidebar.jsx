@@ -1,4 +1,4 @@
-// frontend/src/components/Sidebar.jsx
+
 import { Link, useLocation } from 'react-router-dom';
 
 function Sidebar({ onLogout }) {
@@ -18,7 +18,7 @@ function Sidebar({ onLogout }) {
       borderRight: '1px solid #333', 
       height: '100vh', 
       boxSizing: 'border-box',
-      padding: '20px', // Padding limpio
+      padding: '20px',
       display: 'flex', 
       flexDirection: 'column' 
     }}>
@@ -61,7 +61,7 @@ function Sidebar({ onLogout }) {
             background: 'transparent', 
             border: '1px solid #EF4444', 
             color: '#EF4444', 
-            padding: '12px', // Un poco más alto para que sea clicable
+            padding: '12px',
             borderRadius: '6px', 
             cursor: 'pointer', 
             display: 'flex', 
