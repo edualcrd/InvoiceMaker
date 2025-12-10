@@ -1,8 +1,8 @@
 // backend/middleware/auth.js
 const jwt = require('jsonwebtoken');
 
-// CLAVE SECRETA (Debe ser la misma que en index.js)
-const JWT_SECRET = 'mi_secreto_super_seguro_123';
+// ¡ESTA CLAVE DEBE SER IDÉNTICA A LA DE index.js!
+const JWT_SECRET = 'tokenSecreto-invoicemaker';
 
 module.exports = (req, res, next) => {
     // 1. Buscamos el token en la cabecera de la petición
@@ -14,10 +14,10 @@ module.exports = (req, res, next) => {
     }
 
     try {
-        // 3. Verificamos si el token es válido (no ha caducado, firma correcta)
+        // 3. Verificamos si el token es válido usando la MISMA clave secreta
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // 4. Guardamos el ID del usuario en la petición para que las rutas lo usen
+        // 4. Guardamos el ID del usuario en la petición
         req.user = decoded.userId;
         
         next(); // ¡Puede pasar!

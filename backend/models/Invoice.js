@@ -19,11 +19,6 @@ const InvoiceSchema = new mongoose.Schema({
     baseImponible: Number,
     total: Number,
     pagada: { type: Boolean, default: false },
-    usuario: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Invoice', InvoiceSchema);
