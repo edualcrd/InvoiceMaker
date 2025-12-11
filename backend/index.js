@@ -6,20 +6,20 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const auth = require('./middleware/auth');
+
 // Clave secreta para los tokens (en un proyecto real esto iría en .env)
-const JWT_SECRET = 'tokenSecreto-invoicemaker';
-// Importamos el modelo que acabamos de crear en el Paso 1
+const JWT_SECRET = process.env.JWT_SECRET;
 const Client = require('./models/Client');
 const Invoice = require('./models/Invoice');
 const Product = require('./models/Product');
 const app = express();
-
+const PORT = process.env.PORT || 3000;
 // Middlewares (Configuración básica)
 app.use(cors());
 app.use(express.json());
 
 // Conexión a MongoDB
-const MONGO_URI = 'mongodb+srv://edualcrd:Laude_178@invoicemaker-db.bocdkvy.mongodb.net/?appName=InvoiceMaker-DB';
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Conectada'))
@@ -216,7 +216,9 @@ app.delete('/api/products/:id', auth, async (req, res) => {
     res.json({ mensaje: 'Borrado' });
 });
 // Arrancar servidor
-const PORT = process.env.PORT || 3000;
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ MongoDB Conectada'))
+
 app.listen(PORT, () => {
     console.log(`✅ Servidor listo en http://localhost:${PORT}`);
 });
