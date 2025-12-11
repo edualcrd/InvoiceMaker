@@ -1,7 +1,7 @@
 // backend/middleware/auth.js
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = 'tokenSecreto-invoicemaker';//Esta clave debe ser la misma que usamos al crear el token en el index.js
+const JWT_SECRET = process.env.JWT_SECRET;;//Esta clave debe ser la misma que usamos al crear el token en el index.js
 
 module.exports = (req, res, next) => {
     // 1. Buscamos el token en la cabecera de la petición
