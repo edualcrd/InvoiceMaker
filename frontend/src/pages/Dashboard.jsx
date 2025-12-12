@@ -59,7 +59,6 @@ function Dashboard() {
           logo: data.logo
         });
       });
-    if (savedProfile) setPerfil(JSON.parse(savedProfile));
   }, []);
 
   // Funciones auxiliares
