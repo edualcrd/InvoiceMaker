@@ -235,6 +235,27 @@ app.delete('/api/expenses/:id', auth, async (req, res) => {
     res.json({ mensaje: 'Gasto eliminado' });
 });
 
+//  Rutas del perfil de la empresa
+
+// 1. Obtener mi perfil
+app.get('/api/user/profile', auth, async (req, res) => {
+    // Buscamos al usuario pero sin devolver la contraseña
+    const usuario = await User.findById(req.user).select('-password');
+    res.json(usuario);
+});
+
+// 2. Actualizar mi perfil
+app.put('/api/user/profile', auth, async (req, res) => {
+    // Actualizamos los campos recibidos
+    const usuarioActualizado = await User.findByIdAndUpdate(
+        req.user,
+        req.body, // { nif, direccion, logo... }
+        { new: true } // Devuelve el objeto ya actualizado
+    ).select('-password');
+    
+    res.json(usuarioActualizado);
+});
+
 // Arrancar servidor
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Conectada'))

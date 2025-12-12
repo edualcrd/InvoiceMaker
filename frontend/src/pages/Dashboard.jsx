@@ -46,7 +46,19 @@ function Dashboard() {
     fetchNextNumber();
 
     // 6. Cargargamos el perfil local
-    const savedProfile = localStorage.getItem('invoiceMaker_profile');
+    authFetch('http://localhost:3000/api/user/profile')
+      .then(res => res.json())
+      .then(data => {
+        // Adaptamos los nombres de campos para que encajen con tu componente PDF
+        setPerfil({
+          nombre: data.nombreEmpresa,
+          nif: data.nif,
+          direccion: data.direccion,
+          email: data.contactEmail,
+          iban: data.iban,
+          logo: data.logo
+        });
+      });
     if (savedProfile) setPerfil(JSON.parse(savedProfile));
   }, []);
 
@@ -325,7 +337,7 @@ function Dashboard() {
             </ResponsiveContainer>
           ) : (
             <div style={{ height: '80%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#52525B', border: '2px dashed #27272A', borderRadius: '8px' }}>
-              <span style={{ fontSize: '2rem', marginBottom: '10px' }}>📉</span>
+              <span style={{ fontSize: '2rem', marginBottom: '10px' }}></span>
               <p>Sin gastos registrados</p>
             </div>
           )}
