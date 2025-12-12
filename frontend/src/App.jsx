@@ -8,7 +8,7 @@ import SettingsPage from './pages/SettingsPage'; // Página de ajustes
 import ProductsPage from './pages/ProductsPage'; // Página de productos/servicios
 import LoginPage from './pages/LoginPage'; // Página de login
 import RegisterPage from './pages/RegisterPage'; // Página de registro
-
+import ExpensesPage from './pages/ExpensesPage'; // Página de gastos
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false); 
@@ -60,6 +60,7 @@ function App() {
             <Route path="/clientes" element={<ClientsPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/productos" element={<ProductsPage />} />
+            <Route path="/gastos" element={<ExpensesPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

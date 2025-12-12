@@ -2,23 +2,19 @@ const mongoose = require('mongoose');
 
 const InvoiceSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    numero: { type: String, required: true }, // Quitamos unique global, porque dos usuarios pueden tener la factura "001"
-    fecha: { type: Date, default: Date.now },
+    numero: { type: String, required: true },
+    fecha: { type: Date, required: true },
     vencimiento: Date,
-    cliente: {
-        nombre: String,
-        nif: String,
-        email: String,
-        direccion: String
-    },
-    items: [{
-        concepto: String,
-        cantidad: Number,
-        precio: Number
-    }],
+    cliente: Object,
+    items: Array,
     baseImponible: Number,
+    
+    // --- AÑADE ESTO ---
+    tipoIva: { type: Number, default: 21 }, // Guardamos el % (ej: 21)
+    // ------------------
+    
     total: Number,
-    pagada: { type: Boolean, default: false },
+    pagada: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Invoice', InvoiceSchema);

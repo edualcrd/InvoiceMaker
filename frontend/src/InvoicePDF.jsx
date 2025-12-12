@@ -4,20 +4,17 @@ import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/render
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#09090B', lineHeight: 1.5 },
 
-  // Encabezado (Logo y Título)
+  // Encabezado
   header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, borderBottom: '2px solid #000', paddingBottom: 10 },
   brand: { fontSize: 24, fontWeight: 'bold', textTransform: 'uppercase' },
   invoiceTitle: { fontSize: 16, color: '#71717A', alignSelf: 'flex-end' },
 
-  // Bloque de direcciones (Grid de 2 columnas)
+  // Direcciones
   addressesContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
   addressBlock: { width: '45%' },
   label: { fontSize: 8, color: '#71717A', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
   text: { fontSize: 10, marginBottom: 2 },
   bold: { fontWeight: 'bold', fontSize: 11 },
-
-  // Detalles de factura (Fecha y número)
-  metaContainer: { flexDirection: 'row', gap: 40, marginBottom: 30 },
 
   // Tabla
   tableHeader: { flexDirection: 'row', borderBottom: '1px solid #E4E4E7', paddingBottom: 5, marginBottom: 10 },
@@ -34,19 +31,22 @@ const styles = StyleSheet.create({
   totalValue: { width: 80, textAlign: 'right', fontFamily: 'Courier' },
   grandTotal: { fontSize: 14, fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: 5, marginTop: 5 },
 
-  // Footer (IBAN)
+  // Footer
   footer: { position: 'absolute', bottom: 40, left: 40, right: 40, borderTop: '1px solid #E4E4E7', paddingTop: 10 },
   iban: { fontSize: 9, color: '#71717A', textAlign: 'center' }
 });
 
 const InvoicePDF = ({ factura, perfil }) => {
-  // Cálculos
+  // 1. Recuperar el % de IVA de la factura (si no existe, usa 21 por defecto)
+  const porcentajeIva = factura.tipoIva !== undefined ? factura.tipoIva : 21;
+
+  // Cálculos dinámicos
   const base = factura.items.reduce((acc, item) => acc + (item.cantidad * item.precio), 0);
-  const iva = base * 0.21;
+  const iva = base * (porcentajeIva / 100); // <--- Cálculo con el valor real
   const irpf = base * 0.15;
   const total = base + iva - irpf;
 
-  // Datos del emisor (Tu perfil o fallback si no hay datos)
+  // Datos del emisor
   const emisor = perfil || {
     nombre: 'TU EMPRESA',
     nif: 'B-00000000',
@@ -61,13 +61,8 @@ const InvoicePDF = ({ factura, perfil }) => {
 
         {/* HEADER */}
         <View style={styles.header}>
-
-          {/* Si no hay logo, muestra el nombre */}
           {emisor.logo ? (
-            <Image
-              src={emisor.logo}
-              style={{ width: 60, height: 60, objectFit: 'contain' }} // Ajusta el tamaño aquí
-            />
+            <Image src={emisor.logo} style={{ width: 60, height: 60, objectFit: 'contain' }} />
           ) : (
             <Text style={styles.brand}>{emisor.nombre || 'INVOICEMAKER'}</Text>
           )}  
@@ -80,7 +75,6 @@ const InvoicePDF = ({ factura, perfil }) => {
 
         {/* DIRECCIONES */}
         <View style={styles.addressesContainer}>
-          {/* COLUMNA IZQUIERDA: EMISOR*/}
           <View style={styles.addressBlock}>
             <Text style={styles.label}>De (Emisor):</Text>
             <Text style={styles.bold}>{emisor.nombre}</Text>
@@ -89,7 +83,6 @@ const InvoicePDF = ({ factura, perfil }) => {
             <Text style={styles.text}>{emisor.email}</Text>
           </View>
 
-          {/* COLUMNA DERECHA: CLIENTE */}
           <View style={styles.addressBlock}>
             <Text style={styles.label}>Para (Cliente):</Text>
             <Text style={styles.bold}>{factura.cliente.nombre}</Text>
@@ -99,7 +92,7 @@ const InvoicePDF = ({ factura, perfil }) => {
           </View>
         </View>
 
-        {/* TABLA */}
+        {/* TABLA DE ITEMS */}
         <View style={styles.tableHeader}>
           <Text style={styles.colDesc}>DESCRIPCIÓN</Text>
           <Text style={styles.colQty}>CANT</Text>
@@ -116,26 +109,30 @@ const InvoicePDF = ({ factura, perfil }) => {
           </View>
         ))}
 
-        {/* TOTALES */}
+        {/* TOTALES DINÁMICOS */}
         <View style={styles.totalsSection}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Base Imponible:</Text>
             <Text style={styles.totalValue}>{base.toFixed(2)}€</Text>
           </View>
+          
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>IVA (21%):</Text>
+            {/* Muestra el porcentaje usado: IVA (10%): */}
+            <Text style={styles.totalLabel}>IVA ({porcentajeIva}%):</Text>
             <Text style={styles.totalValue}>{iva.toFixed(2)}€</Text>
           </View>
+
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>IRPF (-15%):</Text>
             <Text style={styles.totalValue}>-{irpf.toFixed(2)}€</Text>
           </View>
+          
           <View style={styles.grandTotal}>
             <Text>TOTAL: {total.toFixed(2)}€</Text>
           </View>
         </View>
 
-        {/* FOOTER CON IBAN */}
+        {/* FOOTER */}
         {emisor.iban && (
           <View style={styles.footer}>
             <Text style={styles.iban}>Pago por transferencia bancaria al IBAN: {emisor.iban}</Text>

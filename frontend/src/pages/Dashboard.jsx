@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, PieChart, Pie, Legend } from 'recharts';
 import { toast } from 'sonner';
 import { authFetch } from '../api';
 import InvoicePDF from '../InvoicePDF';
@@ -11,6 +11,7 @@ function Dashboard() {
   const [clients, setClients] = useState([]);
   const [facturas, setFacturas] = useState([]);
   const [productosCatalogo, setProductosCatalogo] = useState([]); // Catálogo
+  const [gastos, setGastos] = useState([]);
   const [perfil, setPerfil] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
@@ -20,7 +21,7 @@ function Dashboard() {
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [vencimiento, setVencimiento] = useState('');
   const [items, setItems] = useState([{ concepto: '', cantidad: 1, precio: 0 }]);
-
+  const [tipoIva, setTipoIva] = useState(21); // <--- NUEVO: Por defecto 21%
   // Carga inicial de datos
   useEffect(() => {
     // 1. Cargargamos Clientes
@@ -37,11 +38,14 @@ function Dashboard() {
     authFetch('http://localhost:3000/api/products')
       .then(res => res.json())
       .then(data => setProductosCatalogo(data));
-
-    // 4. Calculamos el siguiente número
+    // 4. Cargargamos Gastos
+    authFetch('http://localhost:3000/api/expenses')
+      .then(res => res.json())
+      .then(data => setGastos(data));
+    // 5. Calculamos el siguiente número
     fetchNextNumber();
 
-    // 5. Cargargamos el perfil local
+    // 6. Cargargamos el perfil local
     const savedProfile = localStorage.getItem('invoiceMaker_profile');
     if (savedProfile) setPerfil(JSON.parse(savedProfile));
   }, []);
@@ -59,16 +63,22 @@ function Dashboard() {
 
   const calcularTotal = () => {
     const base = items.reduce((acc, item) => acc + (item.cantidad * item.precio), 0);
-    const iva = base * 0.21;
-    const irpf = base * 0.15;
+    const iva = base * (tipoIva / 100);
+    const irpf = base * 0.15; // Suponemos un IRPF fijo del 15%
     return { base, iva, irpf, total: base + iva - irpf };
   };
   const totales = calcularTotal();
 
+  // Calculamos totales de gastos
+  const totalGastos = gastos.reduce((acc, g) => acc + g.importe, 0);
+
   const kpis = {
-    totalFacturado: facturas.reduce((acc, f) => acc + f.total, 0),
-    totalPendiente: facturas.filter(f => !f.pagada).reduce((acc, f) => acc + f.total, 0),
-    totalCobrado: facturas.filter(f => f.pagada).reduce((acc, f) => acc + f.total, 0)
+    ingresos: facturas.reduce((acc, f) => acc + f.total, 0),
+    gastos: totalGastos,
+    beneficio: facturas.reduce((acc, f) => acc + f.total, 0) - totalGastos,
+
+    // Mantenemos los de control de cobro
+    pendiente: facturas.filter(f => !f.pagada).reduce((acc, f) => acc + f.total, 0)
   };
 
   const datosGrafica = [...facturas].reverse().slice(0, 5).reverse().map(f => ({
@@ -76,8 +86,19 @@ function Dashboard() {
     total: f.total,
     estado: f.pagada ? 'Cobrado' : 'Pendiente'
   }));
+  const gastosPorCategoria = gastos.reduce((acc, gasto) => {
+    const cat = gasto.categoria || 'General';
+    acc[cat] = (acc[cat] || 0) + gasto.importe;
+    return acc;
+  }, {});
 
-  const facturasFiltradas = facturas.filter(f => {
+  // Convertimos el objeto a un array para Recharts
+  const datosQueso = Object.keys(gastosPorCategoria).map(key => ({
+    name: key,
+    value: gastosPorCategoria[key]
+  }));
+
+  const COLORES_QUESO = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1']; const facturasFiltradas = facturas.filter(f => {
     const coincideTexto =
       f.cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       f.numero.toLowerCase().includes(busqueda.toLowerCase());
@@ -112,12 +133,14 @@ function Dashboard() {
     const clienteExistente = clients.find(c => c.nif === factura.cliente.nif);
     setSelectedClient(clienteExistente ? clienteExistente._id : '');
     setItems(factura.items.map(i => ({ concepto: i.concepto, cantidad: i.cantidad, precio: i.precio })));
+    setTipoIva(factura.tipoIva || 21); // <--- Recuperamos el IVA guardado (o 21 si no tiene)
     toast.info('Editando factura ' + factura.numero);
   };
 
   const cancelarEdicion = () => {
     setEditingId(null);
     setItems([{ concepto: '', cantidad: 1, precio: 0 }]);
+    setTipoIva(21);
     setNumero('');
     fetchNextNumber();
     toast.info('Edición cancelada');
@@ -135,7 +158,7 @@ function Dashboard() {
 
     const facturaFinal = {
       numero, fecha, vencimiento, cliente: datosCliente, items,
-      baseImponible: totales.base, total: totales.total, pagada: false
+      baseImponible: totales.base, total: totales.total, pagada: false, tipoIva: tipoIva
     };
     if (!datosCliente) delete facturaFinal.cliente;
 
@@ -198,42 +221,116 @@ function Dashboard() {
       <h1 className="logo-big" style={{ fontSize: '2rem' }}>Panel de Control</h1>
 
       {/* KPIs */}
-      <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', width: '100%', maxWidth: '1000px' }}>
-        <div style={{ flex: 1, background: '#18181B', padding: '20px', borderRadius: '10px', border: '1px solid #333' }}>
-          <p style={{ color: '#A1A1AA', fontSize: '0.9rem', margin: 0 }}>Volumen Negocio</p>
-          <h2 className="mono" style={{ fontSize: '2rem', margin: '10px 0', color: 'white' }}>{kpis.totalFacturado.toFixed(2)}€</h2>
+      {/* KPIs FINANCIEROS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px', width: '100%', maxWidth: '1000px' }}>
+
+        {/* INGRESOS */}
+        <div style={{ background: '#18181B', padding: '20px', borderRadius: '10px', border: '1px solid #333' }}>
+          <p style={{ color: '#A1A1AA', fontSize: '0.9rem', margin: 0 }}>Ingresos Totales</p>
+          <h2 className="mono" style={{ fontSize: '1.8rem', margin: '10px 0', color: '#10B981' }}>
+            +{kpis.ingresos.toFixed(2)}€
+          </h2>
         </div>
-        <div style={{ flex: 1, background: '#18181B', padding: '20px', borderRadius: '10px', border: '1px solid #333' }}>
-          <p style={{ color: '#A1A1AA', fontSize: '0.9rem', margin: 0 }}>Pendiente</p>
-          <h2 className="mono" style={{ fontSize: '2rem', margin: '10px 0', color: '#EF4444' }}>{kpis.totalPendiente.toFixed(2)}€</h2>
+
+        {/* GASTOS */}
+        <div style={{ background: '#18181B', padding: '20px', borderRadius: '10px', border: '1px solid #333' }}>
+          <p style={{ color: '#A1A1AA', fontSize: '0.9rem', margin: 0 }}>Gastos Totales</p>
+          <h2 className="mono" style={{ fontSize: '1.8rem', margin: '10px 0', color: '#EF4444' }}>
+            -{kpis.gastos.toFixed(2)}€
+          </h2>
         </div>
-        <div style={{ flex: 1, background: '#18181B', padding: '20px', borderRadius: '10px', border: '1px solid #333' }}>
-          <p style={{ color: '#A1A1AA', fontSize: '0.9rem', margin: 0 }}>Cobrado</p>
-          <h2 className="mono" style={{ fontSize: '2rem', margin: '10px 0', color: '#10B981' }}>{kpis.totalCobrado.toFixed(2)}€</h2>
+
+        {/* BENEFICIO (El más importante) */}
+        <div style={{ background: '#27272A', padding: '20px', borderRadius: '10px', border: '1px solid #EAB308' }}>
+          <p style={{ color: '#EAB308', fontSize: '0.9rem', margin: 0, fontWeight: 'bold' }}>Beneficio Neto</p>
+          <h2 className="mono" style={{ fontSize: '1.8rem', margin: '10px 0', color: 'white' }}>
+            {kpis.beneficio > 0 ? '+' : ''}{kpis.beneficio.toFixed(2)}€
+          </h2>
         </div>
+
+        {/* POR COBRAR (Útil para gestión) */}
+        <div style={{ background: '#18181B', padding: '20px', borderRadius: '10px', border: '1px solid #333', opacity: 0.7 }}>
+          <p style={{ color: '#A1A1AA', fontSize: '0.9rem', margin: 0 }}>Pendiente de Cobro</p>
+          <h2 className="mono" style={{ fontSize: '1.8rem', margin: '10px 0', color: '#A1A1AA' }}>
+            {kpis.pendiente.toFixed(2)}€
+          </h2>
+        </div>
+
       </div>
 
-      {/* GRÁFICA */}
-      <div style={{ width: '100%', maxWidth: '1000px', height: '350px', background: '#18181B', padding: '25px', borderRadius: '12px', border: '1px solid #27272A', marginBottom: '40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>Ingresos Recientes</h3>
-          <span style={{ fontSize: '0.8rem', color: '#71717A' }}>Últimas 5 facturas</span>
+      {/* CONTENEDOR DE GRÁFICAS */}
+      <div style={{ display: 'flex', gap: '20px', width: '100%', maxWidth: '1000px', marginBottom: '40px', flexWrap: 'wrap' }}>
+
+        {/* 1. GRÁFICA DE INGRESOS */}
+        <div style={{ flex: 3, minWidth: '350px', height: '400px', background: '#18181B', padding: '25px', borderRadius: '12px', border: '1px solid #27272A' }}>
+          <h3 style={{ margin: '0 0 30px 0', color: 'white', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Ingresos vs Pendiente</h3>
+          <ResponsiveContainer width="100%" height="85%">
+            <BarChart data={datosGrafica} barSize={40}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272A" />
+              <XAxis
+                dataKey="nombre"
+                stroke="#71717A"
+                tick={{ fill: '#A1A1AA', fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+                dy={10}
+              />
+              <YAxis
+                stroke="#71717A"
+                tick={{ fill: '#A1A1AA', fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(value) => `${value}€`}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#27272A', opacity: 0.5 }} />
+              <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+                {datosGrafica.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.estado === 'Cobrado' ? '#10B981' : '#3F3F46'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-        <ResponsiveContainer width="100%" height="85%">
-          <BarChart data={datosGrafica} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorCobrado" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.8} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
-              <linearGradient id="colorPendiente" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#71717A" stopOpacity={0.8} /><stop offset="95%" stopColor="#71717A" stopOpacity={0} /></linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272A" />
-            <XAxis dataKey="nombre" stroke="#71717A" tick={{ fill: '#A1A1AA', fontSize: 12 }} tickLine={false} axisLine={false} dy={10} />
-            <YAxis stroke="#71717A" tick={{ fill: '#A1A1AA', fontSize: 12 }} tickLine={false} axisLine={false} unit="€" />
-            <Tooltip cursor={{ fill: '#27272A', opacity: 0.4 }} contentStyle={{ backgroundColor: 'rgba(9, 9, 11, 0.9)', backdropFilter: 'blur(4px)', border: '1px solid #333', borderRadius: '8px', color: 'white' }} itemStyle={{ color: '#E4E4E7' }} />
-            <Bar dataKey="total" radius={[8, 8, 0, 0]} animationDuration={1500}>
-              {datosGrafica.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.estado === 'Cobrado' ? 'url(#colorCobrado)' : 'url(#colorPendiente)'} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+
+        {/* 2. GRÁFICA DE GASTOS (DONUT) */}
+        <div style={{ flex: 2, minWidth: '300px', height: '400px', background: '#18181B', padding: '25px', borderRadius: '12px', border: '1px solid #27272A' }}>
+          <h3 style={{ margin: '0 0 20px 0', color: 'white', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Distribución de Gastos</h3>
+
+          {datosQueso.length > 0 ? (
+            <ResponsiveContainer width="100%" height="85%">
+              <PieChart>
+                <Pie
+                  data={datosQueso}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60} // Hace el agujero más grande (estilo anillo)
+                  outerRadius={80} // Hace el anillo más fino
+                  paddingAngle={5} // Espacio entre secciones
+                  dataKey="value"
+                  stroke="none" // Quita el borde blanco feo
+                >
+                  {datosQueso.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORES_QUESO[index % COLORES_QUESO.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: '12px', color: '#A1A1AA' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ height: '80%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#52525B', border: '2px dashed #27272A', borderRadius: '8px' }}>
+              <span style={{ fontSize: '2rem', marginBottom: '10px' }}>📉</span>
+              <p>Sin gastos registrados</p>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* ZONA DE TRABAJO */}
@@ -270,9 +367,24 @@ function Dashboard() {
                 </select>
               </div>
             </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '20px' }}>
+              <label style={{ fontSize: '0.9rem', color: '#A1A1AA' }}>Impuestos:</label>
+              <select
+                value={tipoIva}
+                onChange={(e) => setTipoIva(Number(e.target.value))}
+                style={{ padding: '5px', background: '#27272A', color: 'white', border: '1px solid #333', borderRadius: '4px' }}
+              >
+                <option value={21}>21% IVA</option>
+                <option value={10}>10% IVA (Reducido)</option>
+                <option value={4}>4% IVA (Superreducido)</option>
+                <option value={0}>0% (Exento)</option>
+              </select>
+            </div>
             <div style={{ textAlign: 'right', borderTop: '1px solid #333', paddingTop: '10px' }}>
               <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>Base: {totales.base.toFixed(2)}€</p>
-              <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#A1A1AA' }}>IVA (21%): {totales.iva.toFixed(2)}€</p>
+              <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#A1A1AA' }}>
+                IVA ({tipoIva}%): {totales.iva.toFixed(2)}€
+              </p>
               <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#EF4444' }}>IRPF (15%): -{totales.irpf.toFixed(2)}€</p>
               <h2 className="mono" style={{ color: 'white', marginTop: '10px' }}>Total: {totales.total.toFixed(2)}€</h2>
             </div>
@@ -318,5 +430,18 @@ function Dashboard() {
     </div>
   );
 }
-
+// Componente para el Tooltip elegante
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ background: '#09090B', border: '1px solid #333', padding: '10px', borderRadius: '8px' }}>
+        <p style={{ margin: 0, fontWeight: 'bold', color: '#E4E4E7' }}>{label || payload[0].name}</p>
+        <p style={{ margin: 0, color: payload[0].fill }}>
+          {payload[0].value.toFixed(2)}€
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 export default Dashboard;

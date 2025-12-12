@@ -12,6 +12,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const Client = require('./models/Client');
 const Invoice = require('./models/Invoice');
 const Product = require('./models/Product');
+const Expense = require('./models/Expense');
 const app = express();
 const PORT = process.env.PORT || 3000;
 // Middlewares (Configuración básica)
@@ -215,6 +216,25 @@ app.delete('/api/products/:id', auth, async (req, res) => {
     await Product.findOneAndDelete({ _id: req.params.id, user: req.user });
     res.json({ mensaje: 'Borrado' });
 });
+
+// Rutas de gastos
+app.get('/api/expenses', auth, async (req, res) => {
+    // Ordenamos por fecha descendente (lo más nuevo primero)
+    const gastos = await Expense.find({ user: req.user }).sort({ fecha: -1 });
+    res.json(gastos);
+});
+
+app.post('/api/expenses', auth, async (req, res) => {
+    const nuevoGasto = new Expense({ ...req.body, user: req.user });
+    await nuevoGasto.save();
+    res.json(nuevoGasto);
+});
+
+app.delete('/api/expenses/:id', auth, async (req, res) => {
+    await Expense.findOneAndDelete({ _id: req.params.id, user: req.user });
+    res.json({ mensaje: 'Gasto eliminado' });
+});
+
 // Arrancar servidor
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Conectada'))

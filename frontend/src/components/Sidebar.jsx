@@ -8,6 +8,7 @@ function Sidebar({ onLogout }) {
     { path: '/', label: 'Dashboard' },
     { path: '/productos', label: 'Servicios' },
     { path: '/clientes', label: 'Clientes' },
+    { path: '/gastos', label: 'Gastos' },
     { path: '/ajustes', label: 'Ajustes' },
   ];
 
