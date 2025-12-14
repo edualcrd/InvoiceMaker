@@ -213,17 +213,50 @@ function Dashboard() {
   const exportarCSV = () => {
     const datos = facturasFiltradas;
     if (datos.length === 0) return toast.error('No hay datos para exportar');
+
     const cabeceras = ['Numero', 'Fecha', 'Cliente', 'NIF', 'Base', 'IVA', 'Total', 'Estado'];
-    const filas = datos.map(f => [
-      `"${f.numero}"`, `"${f.fecha.split('T')[0]}"`, `"${f.cliente.nombre}"`, `"${f.cliente.nif}"`,
-      f.baseImponible.toFixed(2), f.iva.toFixed(2), f.total.toFixed(2), f.pagada ? 'PAGADA' : 'PENDIENTE'
-    ].join(','));
-    const contenidoCSV = [cabeceras.join(','), ...filas].join('\n');
+
+    const filas = datos.map(f => {
+      // 1. Usamos ?. para evitar errores si f.cliente es null o undefined
+      const nombreCliente = f.cliente?.nombre || 'Cliente General';
+      const nifCliente = f.cliente?.nif || '';
+
+      // 2. Aseguramos que los números existen antes de hacer toFixed
+      const base = (f.baseImponible || 0).toFixed(2);
+      const iva = (f.iva || 0).toFixed(2);
+      const total = (f.total || 0).toFixed(2);
+      const fecha = f.fecha ? f.fecha.split('T')[0] : '';
+
+      // 3. Devolvemos el array de strings
+      return [
+        `"${f.numero}"`,
+        `"${fecha}"`,
+        `"${nombreCliente}"`,
+        `"${nifCliente}"`,
+        `"${base}"`,
+        `"${iva}"`,
+        `"${total}"`,
+        f.pagada ? 'PAGADA' : 'PENDIENTE'
+      ].join(',');
+    });
+
+    // 4. Añadimos \uFEFF al principio. Esto es el BOM, necesario para que Excel
+    // reconozca los caracteres especiales (tildes, ñ, €) correctamente.
+    const contenidoCSV = '\uFEFF' + [cabeceras.join(','), ...filas].join('\n');
+
     const blob = new Blob([contenidoCSV], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `facturas_export.csv`;
+
+    // Usamos una URL temporal
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'facturas_export.csv');
+    document.body.appendChild(link); // Requerido por algunos navegadores (Firefox)
     link.click();
+
+    // Limpieza
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // --- RENDERIZADO ---
