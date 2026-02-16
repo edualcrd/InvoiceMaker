@@ -1,74 +1,181 @@
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { toast } from "sonner";
+
+// --- Constantes ---
+const LOGIN_URL = "http://localhost:3000/api/auth/login";
+const STORAGE_KEYS = {
+  TOKEN: "invoice_token",
+  PROFILE: "invoiceMaker_profile",
+};
 
 // Recibimos onLogin (para entrar) y onSwitchToRegister (para ir a crear cuenta)
 function LoginPage({ onLogin, onSwitchToRegister }) {
-  const [form, setForm] = useState({ email: '', password: '' });
+  // --- Estado ---
+  const [form, setForm] = useState({ email: "", password: "" });
 
+  // --- Helpers Internos ---
+  const handleInputChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const saveSessionData = (data) => {
+    // 1. Guardar Token
+    localStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
+
+    // 2. Actualizar perfil de empresa si existe (Lógica original preservada)
+    if (data.nombreEmpresa) {
+      const currentProfileStr =
+        localStorage.getItem(STORAGE_KEYS.PROFILE) || "{}";
+      const currentProfile = JSON.parse(currentProfileStr);
+
+      const updatedProfile = {
+        ...currentProfile,
+        nombre: data.nombreEmpresa,
+      };
+
+      localStorage.setItem(
+        STORAGE_KEYS.PROFILE,
+        JSON.stringify(updatedProfile),
+      );
+    }
+  };
+
+  // --- Handler Principal ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
-      // 1. Petición al servidor real
-      const res = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+      const res = await fetch(LOGIN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        // 2. Guardamos el TOKEN
-        localStorage.setItem('invoice_token', data.token);
-        
-        // Guardamos también los datos de empresa si los hay
-        if (data.nombreEmpresa) {
-           const currentProfile = JSON.parse(localStorage.getItem('invoiceMaker_profile') || '{}');
-           localStorage.setItem('invoiceMaker_profile', JSON.stringify({ ...currentProfile, nombre: data.nombreEmpresa }));
-        }
-
-        toast.success('¡Bienvenido de nuevo!');
+        saveSessionData(data);
+        toast.success("¡Bienvenido de nuevo!");
         onLogin(); // Avisamos a App.jsx para que quite el candado
       } else {
-        toast.error(data.error || 'Contraseña incorrecta');
+        toast.error(data.error || "Contraseña incorrecta");
       }
     } catch (error) {
-      toast.error('Error de conexión con el servidor');
+      toast.error("Error de conexión con el servidor");
     }
   };
 
+  // --- Renderizado ---
   return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#09090B', color: 'white' }}>
-      <div style={{ width: '100%', maxWidth: '400px', padding: '40px', background: '#18181B', borderRadius: '12px', border: '1px solid #27272A', textAlign: 'center' }}>
-        
-        <h1 style={{ marginBottom: '10px', fontSize: '2.5rem' }}>
-          InvoiceMaker
-        </h1>
-        <p style={{ color: '#71717A', marginBottom: '40px' }}>Inicia sesión para gestionar tu negocio</p>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        {/* Header */}
+        <h1 style={styles.title}>InvoiceMaker</h1>
+        <p style={styles.subtitle}>Inicia sesión para gestionar tu negocio</p>
 
-        <form onSubmit={handleSubmit} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} style={styles.form}>
           <div>
-            <label style={{ fontSize: '0.8rem', color: '#A1A1AA' }}>EMAIL</label>
-            <input type="email" placeholder="tu@email.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} autoFocus required style={{ width: '100%', padding: '12px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius: '6px' }} />
+            <label style={styles.label}>EMAIL</label>
+            <input
+              name="email"
+              type="email"
+              placeholder="tu@email.com"
+              value={form.email}
+              onChange={handleInputChange}
+              autoFocus
+              required
+              style={styles.input}
+            />
           </div>
           <div>
-            <label style={{ fontSize: '0.8rem', color: '#A1A1AA' }}>CONTRASEÑA</label>
-            <input type="password" placeholder="••••••••" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required style={{ width: '100%', padding: '12px', background: '#09090B', color: 'white', border: '1px solid #333', borderRadius: '6px' }} />
+            <label style={styles.label}>CONTRASEÑA</label>
+            <input
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
           </div>
 
-          <button type="submit" style={{ marginTop: '10px', width: '100%', padding: '15px', background: 'white', color: 'black', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+          <button type="submit" style={styles.buttonSubmit}>
             ENTRAR
           </button>
         </form>
 
-        {/* ENLACE PARA IR A REGISTRO */}
-        <p style={{ marginTop: '30px', fontSize: '0.9rem', color: '#A1A1AA' }}>
-          ¿No tienes cuenta? <button onClick={onSwitchToRegister} style={{ background: 'transparent', border: 'none', color: '#10B981', cursor: 'pointer', fontWeight: 'bold' }}>Regístrate gratis</button>
+        {/* Footer / Switch */}
+        <p style={styles.footerText}>
+          ¿No tienes cuenta?{" "}
+          <button onClick={onSwitchToRegister} style={styles.buttonLink}>
+            Regístrate gratis
+          </button>
         </p>
       </div>
     </div>
   );
 }
+
+// --- Estilos ---
+const styles = {
+  container: {
+    height: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#09090B",
+    color: "white",
+  },
+  card: {
+    width: "100%",
+    maxWidth: "400px",
+    padding: "40px",
+    background: "#18181B",
+    borderRadius: "12px",
+    border: "1px solid #27272A",
+    textAlign: "center",
+  },
+  title: { marginBottom: "10px", fontSize: "2.5rem" },
+  subtitle: { color: "#71717A", marginBottom: "40px" },
+  form: {
+    textAlign: "left",
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
+  },
+  label: { fontSize: "0.8rem", color: "#A1A1AA" },
+  input: {
+    width: "100%",
+    padding: "12px",
+    background: "#09090B",
+    color: "white",
+    border: "1px solid #333",
+    borderRadius: "6px",
+  },
+  buttonSubmit: {
+    marginTop: "10px",
+    width: "100%",
+    padding: "15px",
+    background: "white",
+    color: "black",
+    fontWeight: "bold",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+  },
+  footerText: { marginTop: "30px", fontSize: "0.9rem", color: "#A1A1AA" },
+  buttonLink: {
+    background: "transparent",
+    border: "none",
+    color: "#10B981",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+};
 
 export default LoginPage;
